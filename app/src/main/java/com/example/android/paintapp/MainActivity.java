@@ -1,10 +1,13 @@
 package com.example.android.paintapp;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -17,12 +20,21 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.kyanogen.signatureview.SignatureView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
+import yuku.ambilwarna.AmbilWarnaDialog;
 
 public class MainActivity extends AppCompatActivity
 {
-
+    int defaultColor;
     SignatureView signatureView;
     ImageButton imgEraser, imgColor, imgSave;
     SeekBar seekBar;
@@ -36,6 +48,7 @@ public class MainActivity extends AppCompatActivity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         signatureView = findViewById(R.id.signature_view);
         seekBar = findViewById(R.id.penSize);
         txtPenSize = findViewById(R.id.txtPenSize);
@@ -44,6 +57,101 @@ public class MainActivity extends AppCompatActivity
         imgSave = findViewById(R.id.btnSave);
 
         askPermission();
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
+        String date = format.format(new Date());
+        fileName = path + "/" + date + ".png";
+
+        if(!path.exists())
+        {
+            path.mkdirs();
+        }
+
+        defaultColor = ContextCompat.getColor(MainActivity.this, R.color.black);
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                txtPenSize.setText(i + "dp");
+                signatureView.setPenSize(i);
+                seekBar.setMax(50);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        imgColor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openColorPicker();
+            }
+        });
+
+        imgEraser.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                signatureView.clearCanvas();
+            }
+        });
+
+        imgSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view)
+            {
+                if(!signatureView.isBitmapEmpty())
+                {
+                    try
+                    {
+                        saveImage();
+                    }
+                    catch (IOException e)
+                    {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "There was a problem while saving tha painting.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+    }
+
+    private void saveImage() throws IOException {
+        File file = new File(fileName);
+        Bitmap bitmap  = signatureView.getSignatureBitmap();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 0, bos);
+        byte[] bitmapData = bos.toByteArray();
+        FileOutputStream fos = new FileOutputStream(file);
+        fos.write(bitmapData);
+        fos.flush();
+        fos.close();
+        Toast.makeText(this, "Painting saved successfully.", Toast.LENGTH_SHORT).show();
+    }
+
+    private void openColorPicker()
+    {
+        AmbilWarnaDialog ambilWarnaDialog = new AmbilWarnaDialog(MainActivity.this, defaultColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
+            @Override
+            public void onCancel(AmbilWarnaDialog dialog)
+            {
+
+            }
+
+            @Override
+            public void onOk(AmbilWarnaDialog dialog, int color)
+            {
+                defaultColor = color;
+                signatureView.setPenColor(color);
+            }
+        });
+        ambilWarnaDialog.show();
     }
 
     private void askPermission()
