@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity
     TextView txtPenSize;
 
     private static String fileName;
-    File path = new File(System.getenv("EXTERNAL_STORAGE") + "/myPaintings");
+    File path = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/myPaintings"); //new File(System.getenv("EXTERNAL_STORAGE") + "/myPaintings");
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -62,10 +62,8 @@ public class MainActivity extends AppCompatActivity
         String date = format.format(new Date());
         fileName = path + "/" + date + ".png";
 
-        if(!path.exists())
-        {
+        if(!path.mkdirs())
             path.mkdirs();
-        }
 
         defaultColor = ContextCompat.getColor(MainActivity.this, R.color.black);
 
